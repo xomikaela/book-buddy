@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../auth/AuthContext";
 import { getAccountDetails, returnBook } from "../api/books";
 
 export default function Account() {

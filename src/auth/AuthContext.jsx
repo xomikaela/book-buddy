@@ -1,41 +1,53 @@
-import { useState } from "react";
-import { useAuth } from "./AuthContext";
-import { useNavigate, Link } from "react-router";
+/*** AuthContext manages the user's authentication state by storing a token,
+ * It provides functions for the user to register, log in, and log out,
+ * all of which update the token in state.
+ */
 
-export default function Login() {
-  const navigate = useNavigate();
-  const { login } = useAuth();
-  const [error, setError] = useState(null);
+import { createContext, useContext, useState } from "react";
 
-  const tryLogin = async (formData) => {
-    setError(null);
+// import.meta.env allows us to access environment variables,
+// which are defined in a file named .env
+const API = import.meta.env.VITE_API;
 
-    const email = formData.get("email");
-    const password = formData.get("password");
-    try {
-      await login({ email, password });
-      navigate("/");
-    } catch (e) {
-      setError(e.message);
+const AuthContext = createContext();
+
+export function AuthProvider({ children }) {
+  const [token, setToken] = useState();
+
+  const register = async (credentials) => {
+    const response = await fetch(API + "/users/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw Error(result.message);
     }
+    setToken(result.token);
   };
 
-  return (
-    <>
-      <h1>Log in to your account</h1>
-      <form action={tryLogin}>
-        <label>
-          Email:
-          <input type="text" name="email" required />
-        </label>
-        <label>
-          Password:
-          <input type="password" name="password" required />
-        </label>
-        <button>Login</button>
-        {error && <p role="alert">{error}</p>}
-      </form>
-      <Link to="/register">Need an account? Register here.</Link>
-    </>
-  );
+  const login = async (credentials) => {
+    const response = await fetch(API + "/users/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw Error(result.message);
+    }
+    setToken(result.token);
+  };
+
+  const logout = () => setToken(null);
+
+  const value = { token, register, login, logout };
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw Error("useAuth must be used within AuthProvider");
+  return context;
 }
